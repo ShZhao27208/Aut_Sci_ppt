@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aut_Sci_Write — Autonomous Scientific Writer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Source+Sans+3:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Pixel Avatar ── */
+    .pixel-avatar {
+      margin-bottom: 28px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .pixel-avatar svg {
+      filter: drop-shadow(0 0 12px rgba(232,179,57,0.5)) drop-shadow(0 0 24px rgba(232,179,57,0.2));
+      transition: filter 0.3s;
+    }
+    .pixel-avatar:hover svg {
+      filter: drop-shadow(0 0 18px rgba(232,179,57,0.8)) drop-shadow(0 0 36px rgba(232,179,57,0.35));
+    }
+    @keyframes pixel-scan {
+      0% { transform: translateY(-100%); opacity: 0.6; }
+      100% { transform: translateY(100%); opacity: 0; }
+    }
+
+    /* ── Reset & Tokens ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #0A1628;
+      --bg-mid:     #0F1E38;
+      --bg-card:    #132040;
+      --bg-card-h:  #172649;
+      --primary:    #1E3A5F;
+      --gold:       #E8B339;
+      --gold-dim:   #C49520;
+      --gold-glow:  rgba(232,179,57,0.18);
+      --blue-glow:  rgba(30,58,95,0.6);
+      --text:       #EDF2F7;
+      --text-muted: #8BA3C0;
+      --border:     rgba(232,179,57,0.12);
+      --border-h:   rgba(232,179,57,0.35);
+      --mono:       'JetBrains Mono', 'Courier New', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield canvas ── */
+    #stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.55;
+    }
+
+    /* ── Utility ── */
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(10,22,40,0.82);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.02em;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--gold); }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 28px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--border-h);
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 32px;
+      background: rgba(232,179,57,0.06);
+      opacity: 0;
+      animation: fadeUp 0.7s 0.1s ease forwards;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 8px var(--gold);
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.25s ease forwards;
+    }
+    .hero h1 .accent { color: var(--gold); font-style: italic; }
+    .hero h1 .dim { color: var(--text-muted); }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.4s ease forwards;
+    }
+
+    .hero-install {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-h);
+      border-radius: 12px;
+      overflow: hidden;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto 36px;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.55s ease forwards;
+      box-shadow: 0 0 40px rgba(232,179,57,0.08);
+    }
+    .hero-install code {
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      color: #79c0ff;
+      padding: 14px 20px;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .copy-btn {
+      background: var(--gold);
+      color: var(--bg-deep);
+      border: none;
+      padding: 14px 20px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+    }
+    .copy-btn:hover { background: #f0c04a; }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied { background: #3fb950; color: white; }
+
+    .hero-cta {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s 0.7s ease forwards;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-gold {
+      background: var(--gold);
+      color: var(--bg-deep);
+      box-shadow: 0 4px 20px rgba(232,179,57,0.3);
+    }
+    .btn-gold:hover { box-shadow: 0 8px 32px rgba(232,179,57,0.45); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── Section shared ── */
+    section { padding: 96px 0; position: relative; z-index: 1; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 300;
+      margin-bottom: 64px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Divider line ── */
+    .gold-line {
+      width: 48px;
+      height: 2px;
+      background: var(--gold);
+      margin: 16px auto 0;
+      border-radius: 2px;
+    }
+
+    /* ── Workflow ── */
+    .workflow-section { background: var(--bg-mid); }
+    .workflow-track {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+    .wf-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 28px 20px;
+      min-width: 140px;
+      flex: 1;
+      max-width: 170px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      position: relative;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .wf-node:hover {
+      border-color: var(--border-h);
+      box-shadow: 0 0 24px var(--gold-glow);
+    }
+    .wf-node .step-num {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+    .wf-node .wf-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 0 6px rgba(232,179,57,0.3));
+    }
+    .wf-node .wf-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .wf-node .wf-skill {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--gold);
+    }
+    .wf-connector {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      color: var(--gold-dim);
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    /* ── Skills Grid ── */
+    .skills-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .skill-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 28px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    .skill-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.55s ease, transform 0.55s ease, border-color 0.3s, box-shadow 0.3s;
+    }
+    .skill-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .skill-card:hover {
+      border-color: var(--border-h);
+      box-shadow: 0 8px 48px rgba(232,179,57,0.1), 0 0 0 1px rgba(232,179,57,0.08);
+      transform: translateY(-4px);
+    }
+    .skill-card:hover::before { opacity: 1; }
+
+    /* Glow orb behind icon */
+    .skill-card::after {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: var(--gold-glow);
+      filter: blur(40px);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .skill-card:hover::after { opacity: 1; }
+
+    .card-icon {
+      font-size: 2.2rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .card-slug {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gold);
+      background: rgba(232,179,57,0.1);
+      border: 1px solid rgba(232,179,57,0.2);
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      letter-spacing: 0.04em;
+    }
+    .card-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-weight: 300;
+    }
+    .trigger-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .trigger {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 3px 9px;
+      border-radius: 4px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .skill-card:hover .trigger {
+      color: var(--text);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    /* ── Install ── */
+    .install-section { background: var(--bg-mid); }
+    .install-steps {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .install-step {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    .step-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 1px solid var(--border-h);
+      background: rgba(232,179,57,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .step-content {}
+    .step-title {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .code-wrap {
+      background: #060e1a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .code-lang {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .code-copy {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .code-copy:hover { color: var(--gold); border-color: var(--gold); }
+    .code-copy.copied { color: #3fb950; border-color: #3fb950; }
+    pre {
+      padding: 20px 20px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      line-height: 1.75;
+    }
+    .c-comment { color: #5c7a9e; }
+    .c-cmd     { color: #79c0ff; }
+    .c-str     { color: #a5d6ff; }
+    .c-flag    { color: #ffa657; }
+    .c-slash   { color: var(--gold); }
+
+    /* ── Footer ── */
+    footer {
+      background: #060e1a;
+      border-top: 1px solid var(--border);
+      padding: 48px 28px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .footer-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 16px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .footer-links a {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--gold); }
+    .footer-copy {
+      font-size: 0.78rem;
+      color: #3a5070;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .workflow-track { flex-direction: column; align-items: center; }
+      .wf-connector { transform: rotate(90deg); padding: 4px 0; }
+      .wf-node { max-width: 100%; width: 100%; }
+      .install-step { grid-template-columns: 1fr; }
+      .step-circle { display: none; }
+    }
+    @media (max-width: 480px) {
+      .hero-install { flex-direction: column; }
+      .hero-install code { padding: 12px 16px; }
+      .copy-btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<!-- Nav -->
+<nav>
+  <a href="#" class="nav-logo">
+    <img src="avatar.gif" width="22" height="22" alt="瞾" style="display:inline-block;vertical-align:middle;margin-right:7px;border-radius:50%;object-fit:cover;filter:drop-shadow(0 0 4px rgba(232,179,57,0.6));"/>Aut_Sci_Write
+  </a>
+  <ul class="nav-links">
+    <li><a href="#workflow">Workflow</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#install">Install</a></li>
+    <li><a href="https://github.com/ShZhao27208/Aut_Sci_Write" target="_blank">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <!-- 瞾 pixel avatar (明+空 structure) -->
+  <div class="pixel-avatar" title="瞾 — Shuo Zhao">
+    <img src="avatar.gif" width="96" height="96" alt="瞾 — Shuo Zhao" style="display:block;margin:0 auto 12px;border-radius:50%;object-fit:cover;border:2px solid rgba(232,179,57,0.5);box-shadow:0 0 20px rgba(232,179,57,0.3);"/>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#E8B339;opacity:0.7;letter-spacing:0.15em;text-align:center;">SHUO · ZHAO</div>
+  </div>
+
+  <div class="hero-eyebrow">Claude Code Skills &nbsp;·&nbsp; 6 Modules</div>
+  <h1>Aut_Sci_<span class="accent">Write</span></h1>
+  <p class="hero-sub">面向科研工作者的全链路 AI 写作Skills集<br>从文献检索到 PPT 生成，一套技能覆盖全流程</p>
+
+  <div class="hero-install">
+    <code id="install-cmd">npx</span> skills add ShZhao27208/Aut_Sci_Write <span class="c-flag">-g</span> <span class="c-flag">-y</span></code>
+    <button class="copy-btn" id="hero-copy" onclick="copyInstall()">COPY</button>
+  </div>
+
+  <div class="hero-cta">
+    <a href="https://github.com/ShZhao27208/Aut_Sci_Write" target="_blank" class="btn btn-gold">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub 仓库
+    </a>
+    <a href="#install" class="btn btn-ghost">快速开始 →</a>
+  </div>
+</section>
+
+<!-- Workflow -->
+<section class="workflow-section" id="workflow">
+  <div class="container">
+    <div class="section-label">Research Pipeline</div>
+    <h2 class="section-title">科研写作全流程</h2>
+    <div class="gold-line" style="margin-bottom: 16px;"></div>
+    <p class="section-sub">六个技能模块覆盖从文献发现到成果输出的完整链路</p>
+
+    <div class="workflow-track">
+      <div class="wf-node">
+        <div class="step-num">01</div>
+        <div class="wf-icon">🔍</div>
+        <div class="wf-label">文献检索</div>
+        <div class="wf-skill">sci-search</div>
+      </div>
+      <div class="wf-connector">→</div>
+      <div class="wf-node">
+        <div class="step-num">02</div>
+        <div class="wf-icon">📄</div>
+        <div class="wf-label">论文解析</div>
+        <div class="wf-skill">sci-extract</div>
+      </div>
+      <div class="wf-connector">→</div>
+      <div class="wf-node">
+        <div class="step-num">03</div>
+        <div class="wf-icon">🖼️</div>
+        <div class="wf-label">图表提取</div>
+        <div class="wf-skill">sci-figure</div>
+      </div>
+      <div class="wf-connector">→</div>
+      <div class="wf-node">
+        <div class="step-num">04</div>
+        <div class="wf-icon">✍️</div>
+        <div class="wf-label">综述写作</div>
+        <div class="wf-skill">sci-review</div>
+      </div>
+      <div class="wf-connector">→</div>
+      <div class="wf-node">
+        <div class="step-num">05</div>
+        <div class="wf-icon">📚</div>
+        <div class="wf-label">文献管理</div>
+        <div class="wf-skill">sci-zotero</div>
+      </div>
+      <div class="wf-connector">→</div>
+      <div class="wf-node">
+        <div class="step-num">06</div>
+        <div class="wf-icon">📊</div>
+        <div class="wf-label">PPT 生成</div>
+        <div class="wf-skill">sci-ppt</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Skills -->
+<section id="skills">
+  <div class="container">
+    <div class="section-label">Skill Modules</div>
+    <h2 class="section-title">六大技能详情</h2>
+    <div class="gold-line" style="margin-bottom: 16px;"></div>
+    <p class="section-sub">每个技能独立可用，也可组合成完整科研工作流</p>
+
+    <div class="skills-grid">
+
+      <div class="skill-card">
+        <span class="card-icon">🔍</span>
+        <span class="card-slug">sci-search</span>
+        <div class="card-title">文献检索与期刊指标</div>
+        <div class="card-desc">支持检索 arXiv、PubMed 与 Web of Science 三大数据源，自动附加 JCR 分区、影响因子，高亮 Nature / Science 等顶刊结果。</div>
+        <div class="trigger-list">
+          <span class="trigger">搜索文献</span>
+          <span class="trigger">查文献</span>
+          <span class="trigger">影响因子</span>
+          <span class="trigger">find papers</span>
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <span class="card-icon">📄</span>
+        <span class="card-slug">sci-extract</span>
+        <div class="card-title">论文核心内容提取</div>
+        <div class="card-desc">采用Heilmeier范式，从 PDF 中深度提取研究问题、方法论、关键结论、实验参数与数值对比，超越简单摘要，输出结构化结果。</div>
+        <div class="trigger-list">
+          <span class="trigger">分析论文</span>
+          <span class="trigger">提取结论</span>
+          <span class="trigger">论文要点</span>
+          <span class="trigger">analyze paper</span>
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <span class="card-icon">🖼️</span>
+        <span class="card-slug">sci-figure</span>
+        <div class="card-title">论文图表智能提取</div>
+        <div class="card-desc">自动检测 PDF 中的图表位置，高精度裁剪，支持复合图拆分为独立子图，保留出版级分辨率（600 DPI）。</div>
+        <div class="trigger-list">
+          <span class="trigger">提取图片</span>
+          <span class="trigger">截取子图</span>
+          <span class="trigger">extract figure</span>
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <span class="card-icon">✍️</span>
+        <span class="card-slug">sci-review</span>
+        <div class="card-title">综述写作与审稿回复</div>
+        <div class="card-desc">基于 4 阶段系统综述结构辅助撰写文献综述；专业审稿回复模板，对标 NeurIPS / ICLR 标准，逐条精准回应。</div>
+        <div class="trigger-list">
+          <span class="trigger">文献综述</span>
+          <span class="trigger">审稿回复</span>
+          <span class="trigger">论文润色</span>
+          <span class="trigger">rebuttal</span>
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <span class="card-icon">📚</span>
+        <span class="card-slug">sci-zotero</span>
+        <div class="card-title">Zotero 文献库集成</div>
+        <div class="card-desc">同步 Zotero 远程文献库，支持通过 DOI / ISBN / PMID 添加引用，自动获取开放获取 PDF，无缝融入写作流程。</div>
+        <div class="trigger-list">
+          <span class="trigger">同步文献</span>
+          <span class="trigger">Zotero</span>
+          <span class="trigger">add citation</span>
+        </div>
+      </div>
+
+      <div class="skill-card">
+        <span class="card-icon">📊</span>
+        <span class="card-slug">sci-ppt</span>
+        <div class="card-title">学术 PPT 自动生成</div>
+        <div class="card-desc">从论文 PDF 或结构化文本一键生成专业学术 PPT，支持 LaTeX 公式渲染、图片嵌入、中英双语布局，适配组会与答辩场景。</div>
+        <div class="trigger-list">
+          <span class="trigger">生成PPT</span>
+          <span class="trigger">组会汇报</span>
+          <span class="trigger">答辩PPT</span>
+          <span class="trigger">论文转PPT</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Install -->
+<section class="install-section" id="install">
+  <div class="container">
+    <div class="section-label">Quick Start</div>
+    <h2 class="section-title">三步完成安装</h2>
+    <div class="gold-line" style="margin-bottom: 16px;"></div>
+    <p class="section-sub">一条命令注册全部技能，立即开始使用</p>
+
+    <div class="install-steps">
+
+      <div class="install-step">
+        <div class="step-circle">1</div>
+        <div class="step-content">
+          <div class="step-title">安装全部技能</div>
+          <div class="code-wrap">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="code-copy" onclick="copyCode(this, 'npx skills add ShZhao27208/Aut_Sci_Write -g -y')">COPY</button>
+            </div>
+            <pre><span class="c-cmd">npx</span> skills add ShZhao27208/Aut_Sci_Write <span class="c-flag">-g</span> <span class="c-flag">-y</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="step-circle">2</div>
+        <div class="step-content">
+          <div class="step-title">配置可选环境变量</div>
+          <div class="code-wrap">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="code-copy" onclick="copyCode(this, 'export ZOTERO_API_KEY=your_api_key\nexport ZOTERO_USER_ID=your_user_id')">COPY</button>
+            </div>
+            <pre><span class="c-comment"># Zotero 集成（可选）</span>
+<span class="c-cmd">export</span> ZOTERO_API_KEY=<span class="c-str">your_api_key</span>
+<span class="c-cmd">export</span> ZOTERO_USER_ID=<span class="c-str">your_user_id</span>
+
+<span class="c-comment"># Web of Science API（可选）</span>
+<span class="c-cmd">export</span> WOS_API_KEY=<span class="c-str">your_wos_key</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="step-circle">3</div>
+        <div class="step-content">
+          <div class="step-title">在 Claude Code 中触发技能</div>
+          <div class="code-wrap">
+            <div class="code-header">
+              <span class="code-lang">claude code</span>
+              <button class="code-copy" onclick="copyCode(this, '搜索文献 transformer attention mechanism')">COPY</button>
+            </div>
+            <pre><span class="c-comment"># 直接用自然语言触发，例如：</span>
+搜索文献 transformer attention mechanism
+
+<span class="c-comment"># 或使用斜杠命令：</span>
+<span class="c-slash">/sci-search</span> "large language models 2024"</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-logo">Aut_Sci_Write</div>
+  <div class="footer-links">
+    <a href="https://github.com/ShZhao27208/Aut_Sci_Write" target="_blank">GitHub</a>
+    <a href="https://github.com/ShZhao27208/Aut_Sci_Write/blob/main/LICENSE" target="_blank">MIT License</a>
+    <a href="https://developer.clarivate.com/apis/wos-starter" target="_blank">WoS API</a>
+    <a href="https://www.zotero.org/settings/keys" target="_blank">Zotero API</a>
+  </div>
+  <div class="footer-copy">Built for the scientific community &nbsp;·&nbsp; Powered by Claude Code &amp; oh-my-claudecode</div>
+</footer>
+
+<script>
+  /* ── Starfield ── */
+  (function () {
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+
+    function resize() {
+      canvas.width  = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    function init() {
+      stars = [];
+      for (let i = 0; i < 160; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          r: Math.random() * 1.2 + 0.2,
+          a: Math.random(),
+          speed: Math.random() * 0.003 + 0.001,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function draw(t) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      stars.forEach(s => {
+        const alpha = s.a * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(232,179,57,${alpha * 0.6})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+
+    resize();
+    init();
+    window.addEventListener('resize', () => { resize(); init(); });
+    requestAnimationFrame(draw);
+  })();
+
+  /* ── Card stagger on scroll ── */
+  (function () {
+    const cards = document.querySelectorAll('.skill-card');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry, _) => {
+        if (entry.isIntersecting) {
+          const card = entry.target;
+          const idx  = Array.from(cards).indexOf(card);
+          setTimeout(() => card.classList.add('visible'), idx * 90);
+          io.unobserve(card);
+        }
+      });
+    }, { threshold: 0.12 });
+    cards.forEach(c => io.observe(c));
+  })();
+
+  /* ── Copy helpers ── */
+  function copyInstall() {
+    const text = document.getElementById('install-cmd').textContent;
+    const btn  = document.getElementById('hero-copy');
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyCode(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'COPIED';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>

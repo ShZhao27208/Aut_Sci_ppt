@@ -3,6 +3,17 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+*.pyc
+library.json
+.env
+.DS_Store
+.vscode/
+.npmrc
+.claude-plugin/
+*.log
+
+
 # C extensions
 *.so
 
@@ -31,7 +42,7 @@ venv/
 ENV/
 
 # Project specific
-*.pptx
+
 *.pdf
 .idea/
 .vscode/

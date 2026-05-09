@@ -1,3 +1,8 @@
+<div align="center">
+<img src="docs/logo.gif" width="160" height="160" alt="瞾 — Shuo Zhao" style="border-radius:50%;"/>
+
+
+
 # Aut_Sci_PPt
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -28,10 +33,10 @@ from aut_sci_ppt import PPTAgent
 agent = PPTAgent()
 user_input = """
 主题：材料学科研究生推免汇报
-申请人：赵烁
+申请人：dd
 1. 教育背景
-- 重庆交通大学
-- 绩点: 3.61/4.0
+- dd大学
+- 绩点: 3.61/5.0
 """
 agent.generate(user_input, "presentation.pptx")
 ```
@@ -48,4 +53,20 @@ agent.generate(user_input, "presentation.pptx")
 This project is open-sourced to help students and researchers. Feel free to submit issues or pull requests to improve the layout engine and parsing accuracy.
 
 ---
-© 2026 Aut_Sci_PPT
+
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE)
+
+
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ShZhao27208%2FAut_Sci_ppt&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ShZhao27208/Aut_Sci_ppt&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ShZhao27208/Aut_Sci_ppt&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ShZhao27208/Aut_Sci_ppt&type=date&legend=top-left" />
+ </picture>
+</a>
