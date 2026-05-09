@@ -41,13 +41,6 @@ user_input = """
 agent.generate(user_input, "presentation.pptx")
 ```
 
-## 📜 Repository Structure
-
-- `src/aut_sci_ppt/`: Core source code.
-- `SKILL.md`: Claude Code skill manifest and behavioral rules.
-- `requirements.txt`: Project dependencies.
-- `LICENSE`: MIT License.
-
 ## 🤝 Contributing
 
 This project is open-sourced to help students and researchers. Feel free to submit issues or pull requests to improve the layout engine and parsing accuracy.
