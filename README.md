@@ -7,6 +7,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+</div>
+
+---
+
+<a id="english"></a>
+
 **Aut_Sci_PPt** is an automated agent designed to convert academic papers (PDF) or structured text into professional, presentation-ready PowerPoint files (.pptx). It is specifically optimized for graduate defense, academic seminars, and research proposals.
 
 ## ✨ Key Features
